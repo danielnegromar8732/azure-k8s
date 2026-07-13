@@ -109,8 +109,7 @@ info "✅ App Podman desplegada. URL: https://$VM_IP/"
 info "Paso 6/6: Ansible — desplegando app K8s en AKS..."
 az aks get-credentials --resource-group "$AKS_RG" --name "$AKS_NAME" --overwrite-existing
 
-ansible-playbook -i ansible/inventory.ini ansible/playbook_k8s.yml \
-  -e "acr_login=$ACR_LOGIN"
+ansible-playbook -i ansible/inventory.ini ansible/playbook_k8s.yml -e "acr_login=$ACR_LOGIN"
 
 # Esperar a que el Service tenga IP externa
 info "Esperando IP pública del LoadBalancer de AKS (puede tardar 1-2 min)..."
