@@ -1,0 +1,56 @@
+---
+- name: Configurar VM y desplegar app en Podman
+  hosts: all # Se conectará a la IP de la VM que le pasemos
+  become: true # Ejecutar como root (necesario para systemd y puertos < 1024)
+  gather_facts: true
+
+  vars:
+    # Estas variables se pasarán desde el script deploy.sh o group_vars
+    acr_login: "{{ acr_login_server }}"
+    acr_user: "{{ acr_admin_username }}"
+    acr_pass: "{{ acr_admin_password }}"
+    app_image: "{{ acr_login }}/app-podman:casopractico2"
+    container_name: "cp2-web-podman"
+
+  tasks:
+    - name: Instalar Podman
+      ansible.builtin.apt:
+        name: podman
+        state: present
+        update_cache: true
+
+    - name: Login en Azure Container Registry
+      containers.podman.podman_login:
+        registry: "{{ acr_login }}"
+        username: "{{ acr_user }}"
+        password: "{{ acr_pass }}"
+
+    - name: Descargar imagen de la app desde ACR
+      containers.podman.podman_image:
+        name: "{{ app_image }}"
+        pull: true
+
+    - name: Arrancar contenedor como servicio systemd
+      containers.podman.podman_container:
+        name: "{{ container_name }}"
+        image: "{{ app_image }}"
+        state: started
+        ports:
+          - "443:443"
+        # generate_systemd crea el fichero .service en /etc/systemd/system
+        # new=true fuerza la recreación de la unidad si cambia la imagen
+        generate_systemd:
+          path: /etc/systemd/system
+          restart_policy: always
+          names: true
+          new: true
+
+    - name: Recargar daemon de systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Habilitar e iniciar el servicio de la app
+      ansible.builtin.systemd_service:
+        name: "container-{{ container_name }}.service"
+        enabled: true
+        state: started

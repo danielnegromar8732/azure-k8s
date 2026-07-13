@@ -1,0 +1,82 @@
+---
+- name: Desplegar app persistente en AKS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Estas variables se pasan desde el script deploy.sh o se definen aquí
+    acr_login: "cpc2uniracrmfrm.azurecr.io"
+    app_image: "{{ acr_login }}/app-k8s:casopractico2"
+    app_name: "contador"
+    pvc_size: "1Gi"
+    storage_class: "managed-csi"
+
+  tasks:
+    - name: Crear PersistentVolumeClaim (PVC)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: "{{ app_name }}-pvc"
+            namespace: default
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: "{{ storage_class }}"
+            resources:
+              requests:
+                storage: "{{ pvc_size }}"
+
+    - name: Crear Deployment con volumen montado
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{ app_name }}-deploy"
+            namespace: default
+            labels:
+              app: "{{ app_name }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: "{{ app_name }}"
+            template:
+              metadata:
+                labels:
+                  app: "{{ app_name }}"
+              spec:
+                containers:
+                  - name: "{{ app_name }}"
+                    image: "{{ app_image }}"
+                    ports:
+                      - containerPort: 8080
+                    volumeMounts:
+                      - name: almacenamiento
+                        mountPath: /data
+                volumes:
+                  - name: almacenamiento
+                    persistentVolumeClaim:
+                      claimName: "{{ app_name }}-pvc"
+
+    - name: Crear Service LoadBalancer
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ app_name }}-svc"
+            namespace: default
+          spec:
+            type: LoadBalancer
+            selector:
+              app: "{{ app_name }}"
+            ports:
+              - port: 80
+                targetPort: 8080
