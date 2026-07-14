@@ -8,7 +8,8 @@ crash.log
 
 # Ansible
 *.retry
-group_vars/all.yml
+ansible/inventory.ini
+ansible/group_vars/all.yml
 vault_pass.txt
 
 # Claves / certificados
