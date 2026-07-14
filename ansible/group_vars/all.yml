@@ -1,5 +1,0 @@
-# Generado automáticamente por deploy.sh — NO editar a mano
-acr_login_server: "cpc2uniracrmfrm.azurecr.io"
-acr_admin_username: "cpc2uniracrmfrm"
-acr_admin_password: "9O4gUxTOlDGW5y5tkfkdafiNkipSqeibvhCBKNCpOrlGZDlqWuPgJQQJ99CGACR0EKYEqg7NAAACAZCRQsRi"
-image_tag: "casopractico2"
